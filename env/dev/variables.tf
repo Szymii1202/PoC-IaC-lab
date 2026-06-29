@@ -1,19 +1,19 @@
 variable "project_name" {
-    type = string
-    description = "Nazwa projektu"
+  type        = string
+  description = "Nazwa projektu"
 }
 
 variable "location" {
-    type = string
-    description = "Lokalizacja zasobów"
+  type        = string
+  description = "Lokalizacja zasobów"
 }
 
 variable "environment" {
-    type = string
-    description = "Środowisko (dev, test, prod)"
+  type        = string
+  description = "Środowisko (dev, test, prod)"
 }
 
 variable "tags" {
-    type = map(string)
-    description = "Tagi dodane do zasobów"
+  type        = map(string)
+  description = "Tagi dodane do zasobów"
 }
