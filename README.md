@@ -1,0 +1,1 @@
+Celem projektu jest zapoznanie się z zarządzaniem i wdrożeniem zasobów w chmurze Microsoft Azure wraz z ich zabezpieczeniem i monitoringiem. Projekt został podzielony na moduły, które odpowiadają poszczególnym elementom w projekcie (sieć, monitoring, storage, ...). Budowanie infrastruktury opiera się o pipeline CI/CD w GitHub Actions z wykorzystaniem OIDC.
