@@ -8,11 +8,12 @@ locals {
   }
 
   address_groups = {
-    "vnet"         = "10.0.0.0/16"
-    "Frontend"     = "10.0.1.0/24"
-    "Backend"      = "10.0.2.0/24"
-    "Gateway"      = "10.0.3.0/24"
-    "Internet"     = "0.0.0.0/0"
+    "vnet"               = "10.0.0.0/16"
+    "FrontendSubnet"     = "10.0.1.0/24"
+    "BackendSubnet"      = "10.0.2.0/24"
+    "GatewaySubnet"      = "10.0.3.0/24"
+    "AzureBastionSubnet" = "10.0.255.0/24"
+    "Internet"           = "0.0.0.0/0"
   }
 }
 
@@ -36,14 +37,17 @@ module "network" {
   vnet_address_space  = [local.address_groups.vnet]
 
   subnets = {
-    "Frontend" = {
-      address_prefix = [local.address_groups.Frontend]
+    "FrontendSubnet" = {
+      address_prefix = [local.address_groups.FrontendSubnet]
     }
-    "Backend" = {
-      address_prefix = [local.address_groups.Backend]
+    "BackendSubnet" = {
+      address_prefix = [local.address_groups.BackendSubnet]
     }
-    "Gateway" = {
-      address_prefix = [local.address_groups.Gateway]
+    "GatewaySubnet" = {
+      address_prefix = [local.address_groups.GatewaySubnet]
+    }
+    "AzureBastionSubnet" = {
+      address_prefix = [local.address_groups.AzureBastionSubnet]
     }
   }
 
@@ -53,16 +57,16 @@ module "network" {
   )
 }
 
-module "nsg_frontend" {
+module "nsg_frontend_subnet" {
   source = "../../modules/nsg"
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
-  purpose             = "Frontend"
+  purpose             = "FrontendSubnet"
   environment         = var.environment
 
   subnet_ids = {
-    Frontend = module.network.subnet_ids["Frontend"]
+    FrontendSubnet = module.network.subnet_ids["FrontendSubnet"]
   }
 
   nsg_rules = [
@@ -74,9 +78,9 @@ module "nsg_frontend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "1433"
-      source_address_prefix      = local.address_groups.Frontend
-      destination_address_prefix = local.address_groups.Backend
-      description = "Allow outbound traffic from Frontend to Backend on port 1433 (MSSQL)"
+      source_address_prefix      = local.address_groups.FrontendSubnet
+      destination_address_prefix = local.address_groups.BackendSubnet
+      description                = "Allow outbound traffic from FrontendSubnet to BackendSubnet on port 1433 (MSSQL)"
     },
     {
       name                       = "allow-mysql-out"
@@ -86,9 +90,9 @@ module "nsg_frontend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "3306"
-      source_address_prefix      = local.address_groups.Frontend
-      destination_address_prefix = local.address_groups.Backend
-      description = "Allow outbound traffic from Frontend to Backend on port 3306 (MySQL)"
+      source_address_prefix      = local.address_groups.FrontendSubnet
+      destination_address_prefix = local.address_groups.BackendSubnet
+      description                = "Allow outbound traffic from FrontendSubnet to BackendSubnet on port 3306 (MySQL)"
     },
     {
       name                       = "allow-ssh-in"
@@ -98,23 +102,23 @@ module "nsg_frontend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "22"
-      source_address_prefix      = local.address_groups.Frontend
+      source_address_prefix      = local.address_groups.FrontendSubnet
       destination_address_prefix = local.address_groups.Internet
-      description = "Allow inbound SSH traffic from the Internet to Frontend"
+      description                = "Allow inbound SSH traffic from the Internet to FrontendSubnet"
     }
   ]
 }
 
-module "nsg_backend" {
+module "nsg_backend_subnet" {
   source = "../../modules/nsg"
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
-  purpose             = "Backend"
+  purpose             = "BackendSubnet"
   environment         = var.environment
 
   subnet_ids = {
-    Backend = module.network.subnet_ids["Backend"]
+    BackendSubnet = module.network.subnet_ids["BackendSubnet"]
   }
 
   nsg_rules = [
@@ -126,9 +130,9 @@ module "nsg_backend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "1433"
-      source_address_prefix      = local.address_groups.Frontend
-      destination_address_prefix = local.address_groups.Backend
-      description = "Allow inbound traffic from Frontend to Backend on port 1433 (MSSQL)"
+      source_address_prefix      = local.address_groups.FrontendSubnet
+      destination_address_prefix = local.address_groups.BackendSubnet
+      description                = "Allow inbound traffic from FrontendSubnet to BackendSubnet on port 1433 (MSSQL)"
     },
     {
       name                       = "allow-mysql-in"
@@ -138,9 +142,9 @@ module "nsg_backend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "3306"
-      source_address_prefix      = local.address_groups.Frontend
-      destination_address_prefix = local.address_groups.Backend
-      description = "Allow inbound traffic from Frontend to Backend on port 3306 (MySQL)"
+      source_address_prefix      = local.address_groups.FrontendSubnet
+      destination_address_prefix = local.address_groups.BackendSubnet
+      description                = "Allow inbound traffic from FrontendSubnet to BackendSubnet on port 3306 (MySQL)"
     },
     {
       name                       = "allow-https-out"
@@ -150,9 +154,24 @@ module "nsg_backend" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "443"
-      source_address_prefix      = local.address_groups.Backend
+      source_address_prefix      = local.address_groups.BackendSubnet
       destination_address_prefix = local.address_groups.Internet
-      description = "Allow outbound HTTPS traffic from Backend to the Internet"
+      description                = "Allow outbound HTTPS traffic from BackendSubnet to the Internet"
     }
   ]
+}
+
+module "storage_account" {
+  source = "../../modules/storage"
+
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = var.location
+  project_name             = var.project_name
+  environment              = var.environment
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  tags = merge(
+    local.tags,
+    { environment = var.environment }
+  )
 }
