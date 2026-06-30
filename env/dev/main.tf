@@ -181,12 +181,12 @@ module "storage_account" {
 module "storage_containers" {
   source = "../../modules/container"
 
-  storage_account_id    = module.storage_account.storage_account_id
+  storage_account_id = module.storage_account.storage_account_id
   containers = {
     "frontend" = {}
     "backend"  = {}
-    "logs"    = {}
-    "backup"  = {}
+    "logs"     = {}
+    "backup"   = {}
     "publicfiles" = {
       container_access_type = "blob"
     }
@@ -211,4 +211,30 @@ module "key_vault" {
     local.tags,
     { environment = var.environment }
   )
+}
+
+module "key_vault_policies" {
+  source = "../../modules/keyvault-policies"
+
+  key_vault_id = module.key_vault.keyvault_id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  kv_policies = {
+    "app" = {
+      key_permissions         = ["Get", "List", "Sign", "Verify", "Encrypt", "Decrypt"]
+      secret_permissions      = ["Get", "List"]
+      certificate_permissions = ["Get", "List"]
+    }
+    "ci_cd" = {
+      key_permissions         = ["Get", "List", "Create", "Delete", "Import", "Update", "Backup", "Restore", "Update"]
+      secret_permissions      = ["Get", "List", "Set", "Delete"]
+      certificate_permissions = ["Get", "List", "Delete", "Import", "Update"]
+    }
+    "secadmin" = {
+      key_permissions         = ["Get", "List"]
+      secret_permissions      = ["Get", "List"]
+      certificate_permissions = ["Get", "List"]
+    }
+  }
 }
