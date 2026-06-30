@@ -175,3 +175,19 @@ module "storage_account" {
     { environment = var.environment }
   )
 }
+
+module "storage_containers" {
+  source = "../../modules/container"
+
+  storage_account_id    = module.storage_account.storage_account_id
+  containers = {
+    "frontend" = {}
+    "backend"  = {}
+    "logs"    = {}
+    "backup"  = {}
+    "publicfiles" = {
+      container_access_type = "blob"
+    }
+
+  }
+}
