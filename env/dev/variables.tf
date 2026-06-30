@@ -12,8 +12,3 @@ variable "environment" {
   type        = string
   description = "Środowisko (dev, test, prod)"
 }
-
-variable "tags" {
-  type        = map(string)
-  description = "Tagi dodane do zasobów"
-}
