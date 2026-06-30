@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 locals {
   tags = {
     owner       = "szymon.dudziak"
@@ -190,4 +192,23 @@ module "storage_containers" {
     }
 
   }
+}
+
+module "key_vault" {
+  source = "../../modules/keyvault"
+
+  resource_group_name           = azurerm_resource_group.rg.name
+  location                      = var.location
+  project_name                  = var.project_name
+  environment                   = var.environment
+  tenant_id                     = data.azurerm_client_config.current.tenant_id
+  sku_name                      = "standard"
+  soft_delete_retention_days    = 7
+  purge_protection_enabled      = false
+  public_network_access_enabled = true
+
+  tags = merge(
+    local.tags,
+    { environment = var.environment }
+  )
 }
