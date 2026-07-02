@@ -5,32 +5,33 @@ variable "project_name" {
 
 variable "environment" {
     type        = string
-    description = "Środowisko"
+    description = "Type of environment (e.g., dev, test, prod)"
 }
 
 variable "resource_group_name" {
     type        = string
-    description = "Nazwa grupy zasobów"
+    description = "Name of the resource group"
 }
 
 variable "location" {
     type        = string
-    description = "Lokalizacja zasobów"
+    description = "Location of the resources"
 }
 
 variable "vnet_address_space" {
     type        = list(string)
-    description = "Zakres adresów sieci wirtualnej"
+    description = "Address space of the virtual network"
 }
 
 variable "subnets" {
     type = map(object({
+        name = string
         address_prefix  = list(string)
     }))
-  
+    description = "Map of subnets with their names and address prefixes"
 }
 
 variable "tags" {
     type        = map(string)
-    description = "Tagi dla zasobów"
+    description = "Tags for the resources"
 }

@@ -1,21 +1,21 @@
 variable "environment" {
     type        = string
-    description = "Środowisko"
+    description = "Type of environment (e.g., dev, test, prod)"
 }
 
 variable "purpose" {
     type        = string
-    description = "Cel zasobu"
+    description = "Purpose of the resource"
 }
 
 variable "resource_group_name" {
     type        = string
-    description = "Nazwa grupy zasobów"
+    description = "Name of the resource group"
 }
 
 variable "location" {
     type        = string
-    description = "Lokalizacja zasobów"
+    description = "Location of the resources"
 }
 
 variable "nsg_rules" {
@@ -38,10 +38,10 @@ variable "nsg_rules" {
         source_application_security_group_ids       = optional(list(string))
         source_port_ranges                          = optional(list(string))
     }))
-    description = "Lista reguł NSG"
+    description = "List of NSG rules"
 }
 
 variable "subnet_ids" {
     type        = map(string)
-    description = "Lista ID podsieci"
+    description = "List of subnet IDs"
 }

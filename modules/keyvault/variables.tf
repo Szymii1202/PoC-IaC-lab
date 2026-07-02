@@ -1,49 +1,49 @@
 variable "project_name" {
     type        = string
-    description = "Nazwa projektu"
+    description = "Name of the project"
 }
 
 variable "environment" {
     type        = string
-    description = "Środowisko (np. dev, test, prod)"
+    description = "Type of environment (e.g., dev, test, prod)"
 }
 
 variable "resource_group_name" {
     type        = string
-    description = "Nazwa grupy zasobów"
+    description = "Name of the resource group"
 }
 
 variable "location" {
     type        = string
-    description = "Lokalizacja zasobu"
+    description = "Location of the resources"
 }
 
 variable "tenant_id" {
     type        = string
-    description = "Identyfikator dzierżawy Azure"
+    description = "Tenant ID of the Azure AD"
 }
 
 variable "sku_name" {
     type        = string
-    description = "Nazwa SKU Key Vault (np. standard, premium)"
+    description = "Name of the Key Vault SKU (e.g., standard, premium)"
 }
 
 variable "soft_delete_retention_days" {
     type        = number
-    description = "Liczba dni przechowywania usuniętych obiektów w Key Vault"
+    description = "Number of days to retain deleted objects in the Key Vault"
 }
 
 variable "purge_protection_enabled" {
     type        = bool
-    description = "Czy ochrona przed trwałym usunięciem jest włączona"
+    description = "Whether purge protection is enabled"
 }
 
 variable "public_network_access_enabled" {
     type        = bool
-    description = "Czy dostęp do Key Vault z publicznej sieci jest włączony"
+    description = "Whether public network access is enabled"
 }
 
 variable "tags" {
     type        = map(string)
-    description = "Tagi zasobu"
+    description = "Tags for the resource"
 }

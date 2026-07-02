@@ -4,20 +4,20 @@ variable "kv_policies" {
     secret_permissions      = optional(list(string))
     certificate_permissions = optional(list(string))
   }))
-  description = "Mapa polityk Key Vault, gdzie klucz to nazwa polityki, a wartość to obiekt z uprawnieniami"
+  description = "Map of Key Vault policies, where the key is the policy name, and the value is an object with permissions"
 }
 
 variable "key_vault_id" {
   type        = string
-  description = "ID Key Vault"
+  description = "ID of the Key Vault"
 }
 
 variable "tenant_id" {
   type        = string
-  description = "Identyfikator dzierżawy Azure"
+  description = "Tenant ID of the Azure AD"
 }
 
 variable "object_id" {
   type        = string
-  description = "Identyfikator obiektu (np. użytkownika lub grupy) dla polityki dostępu"
+  description = "Object ID of the user or group for the access policy"
 }
