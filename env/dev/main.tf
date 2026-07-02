@@ -1,74 +1,67 @@
 data "azurerm_client_config" "current" {}
 
 locals {
-  tags = {
-    owner       = "szymon.dudziak"
-    project     = "iac-lab"
-    managed_by  = "Terraform"
-    cost_center = "iac-lab"
-    lifecycle   = "dev"
-  }
-
   address_groups = {
-    "vnet"               = "10.0.0.0/16"
-    "FrontendSubnet"     = "10.0.1.0/24"
-    "BackendSubnet"      = "10.0.2.0/24"
-    "GatewaySubnet"      = "10.0.3.0/24"
-    "AzureBastionSubnet" = "10.0.255.0/24"
-    "Internet"           = "0.0.0.0/0"
+    "vnet"     = "10.0.0.0/16"
+    "frontend" = "10.0.1.0/24"
+    "backend"  = "10.0.2.0/24"
+    "gateway"  = "10.0.3.0/24"
+    "bastion"  = "10.0.255.0/24"
+    "internet" = "0.0.0.0/0"
   }
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "rg-${var.project_name}-${var.environment}"
-  location = var.location
+module "global" {
+  source = "../../modules/global"
 
-  tags = merge(
-    local.tags,
-    { environment = var.environment }
-  )
+  project_name = local.project_name
+  environment  = var.environment
+  location     = local.location
+
+  tags = local.global_tags
 }
 
 module "network" {
   source = "../../modules/network"
 
-  project_name        = var.project_name
+  project_name        = local.project_name
   environment         = var.environment
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = module.global.resource_group_name
+  location            = local.location
   vnet_address_space  = [local.address_groups.vnet]
 
   subnets = {
-    "FrontendSubnet" = {
-      address_prefix = [local.address_groups.FrontendSubnet]
+    "frontend" = {
+      name           = "frontend"
+      address_prefix = [local.address_groups.frontend]
     }
-    "BackendSubnet" = {
-      address_prefix = [local.address_groups.BackendSubnet]
+    "backend" = {
+      name           = "backend"
+      address_prefix = [local.address_groups.backend]
     }
-    "GatewaySubnet" = {
-      address_prefix = [local.address_groups.GatewaySubnet]
+    "gateway" = {
+      name           = "GatewaySubnet"
+      address_prefix = [local.address_groups.gateway]
     }
-    "AzureBastionSubnet" = {
-      address_prefix = [local.address_groups.AzureBastionSubnet]
+    "bastion" = {
+      name           = "AzureBastionSubnet"
+      address_prefix = [local.address_groups.bastion]
     }
   }
 
-  tags = merge(
-    local.tags,
-    { environment = var.environment }
-  )
+  tags = local.global_tags
 }
 
 module "nsg_frontend_subnet" {
   source = "../../modules/nsg"
 
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = module.global.resource_group_name
+  location            = local.location
   purpose             = "FrontendSubnet"
   environment         = var.environment
 
   subnet_ids = {
-    FrontendSubnet = module.network.subnet_ids["FrontendSubnet"]
+    frontend = module.network.subnet_ids["frontend"]
   }
 
   nsg_rules = [
@@ -80,9 +73,9 @@ module "nsg_frontend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "1433"
-      source_address_prefix      = local.address_groups.FrontendSubnet
-      destination_address_prefix = local.address_groups.BackendSubnet
-      description                = "Allow outbound traffic from FrontendSubnet to BackendSubnet on port 1433 (MSSQL)"
+      source_address_prefix      = local.address_groups.frontend
+      destination_address_prefix = local.address_groups.backend
+      description                = "Allow outbound traffic from frontend to backend on port 1433 (MSSQL)"
     },
     {
       name                       = "allow-mysql-out"
@@ -92,8 +85,8 @@ module "nsg_frontend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "3306"
-      source_address_prefix      = local.address_groups.FrontendSubnet
-      destination_address_prefix = local.address_groups.BackendSubnet
+      source_address_prefix      = local.address_groups.frontend
+      destination_address_prefix = local.address_groups.backend
       description                = "Allow outbound traffic from FrontendSubnet to BackendSubnet on port 3306 (MySQL)"
     },
     {
@@ -104,9 +97,9 @@ module "nsg_frontend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "22"
-      source_address_prefix      = local.address_groups.FrontendSubnet
-      destination_address_prefix = local.address_groups.Internet
-      description                = "Allow inbound SSH traffic from the Internet to FrontendSubnet"
+      source_address_prefix      = local.address_groups.frontend
+      destination_address_prefix = local.address_groups.internet
+      description                = "Allow inbound SSH traffic from the Internet to frontend"
     }
   ]
 }
@@ -114,13 +107,13 @@ module "nsg_frontend_subnet" {
 module "nsg_backend_subnet" {
   source = "../../modules/nsg"
 
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = module.global.resource_group_name
+  location            = local.location
   purpose             = "BackendSubnet"
   environment         = var.environment
 
   subnet_ids = {
-    BackendSubnet = module.network.subnet_ids["BackendSubnet"]
+    backend = module.network.subnet_ids["backend"]
   }
 
   nsg_rules = [
@@ -132,9 +125,9 @@ module "nsg_backend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "1433"
-      source_address_prefix      = local.address_groups.FrontendSubnet
-      destination_address_prefix = local.address_groups.BackendSubnet
-      description                = "Allow inbound traffic from FrontendSubnet to BackendSubnet on port 1433 (MSSQL)"
+      source_address_prefix      = local.address_groups.frontend
+      destination_address_prefix = local.address_groups.backend
+      description                = "Allow inbound traffic from frontend to backend on port 1433 (MSSQL)"
     },
     {
       name                       = "allow-mysql-in"
@@ -144,9 +137,9 @@ module "nsg_backend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "3306"
-      source_address_prefix      = local.address_groups.FrontendSubnet
-      destination_address_prefix = local.address_groups.BackendSubnet
-      description                = "Allow inbound traffic from FrontendSubnet to BackendSubnet on port 3306 (MySQL)"
+      source_address_prefix      = local.address_groups.frontend
+      destination_address_prefix = local.address_groups.backend
+      description                = "Allow inbound traffic from frontend to backend on port 3306 (MySQL)"
     },
     {
       name                       = "allow-https-out"
@@ -156,9 +149,9 @@ module "nsg_backend_subnet" {
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "443"
-      source_address_prefix      = local.address_groups.BackendSubnet
-      destination_address_prefix = local.address_groups.Internet
-      description                = "Allow outbound HTTPS traffic from BackendSubnet to the Internet"
+      source_address_prefix      = local.address_groups.backend
+      destination_address_prefix = local.address_groups.internet
+      description                = "Allow outbound HTTPS traffic from backend to the Internet"
     }
   ]
 }
@@ -166,16 +159,13 @@ module "nsg_backend_subnet" {
 module "storage_account" {
   source = "../../modules/storage"
 
-  resource_group_name      = azurerm_resource_group.rg.name
-  location                 = var.location
-  project_name             = var.project_name
+  resource_group_name      = module.global.resource_group_name
+  location                 = local.location
+  project_name             = local.project_name
   environment              = var.environment
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  tags = merge(
-    local.tags,
-    { environment = var.environment }
-  )
+  tags = local.global_tags
 }
 
 module "storage_containers" {
@@ -197,9 +187,9 @@ module "storage_containers" {
 module "key_vault" {
   source = "../../modules/keyvault"
 
-  resource_group_name           = azurerm_resource_group.rg.name
-  location                      = var.location
-  project_name                  = var.project_name
+  resource_group_name           = module.global.resource_group_name
+  location                      = local.location
+  project_name                  = local.project_name
   environment                   = var.environment
   tenant_id                     = data.azurerm_client_config.current.tenant_id
   sku_name                      = "standard"
@@ -207,10 +197,7 @@ module "key_vault" {
   purge_protection_enabled      = false
   public_network_access_enabled = true
 
-  tags = merge(
-    local.tags,
-    { environment = var.environment }
-  )
+  tags = local.global_tags
 }
 
 module "key_vault_policies" {
@@ -237,4 +224,46 @@ module "key_vault_policies" {
       certificate_permissions = ["Get", "List"]
     }
   }
+}
+
+module "compute" {
+  source = "../../modules/compute"
+
+  resource_group_name = module.global.resource_group_name
+  location            = local.location
+  vms                 = {
+    "web" = {
+      subnet_id = module.network.subnet_ids["frontend"]
+      name      = "vm-web"
+      vm_size   = "Standard_B2ats_V2"
+      custom_data_path = "${path.module}/cloud-init.yml"
+      acc = {
+        admin_username = "webadmin"
+        admin_ssh_key  = file("~/.ssh/web_vm.pub")
+      }
+      image = {
+        publisher = "Canonical"
+        offer     = "0001-com-ubuntu-server-jammy"
+        sku       = "22_04-lts"
+        version   = "latest"
+      }
+    }
+    "app" = {
+      subnet_id = module.network.subnet_ids["backend"]
+      name      = "vm-app"
+      vm_size   = "Standard_B2ats_V2"
+      acc = {
+        admin_username = "appadmin"
+        admin_ssh_key  = file("~/.ssh/app_vm.pub")
+      }
+      image = {
+        publisher = "Canonical"
+        offer     = "0001-com-ubuntu-server-jammy"
+        sku       = "22_04-lts"
+        version   = "latest"
+      }
+    }
+  }
+
+  tags = local.global_tags
 }
