@@ -267,3 +267,14 @@ module "compute" {
 
   tags = local.global_tags
 }
+
+module "logs" {
+  source = "../../modules/monitoring"
+
+  resource_group_name = module.global.resource_group_name
+  location            = local.location
+  project_name        = local.project_name
+  environment         = var.environment
+
+  tags = local.global_tags
+}
